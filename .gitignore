@@ -1,0 +1,7 @@
+*.pyc
+*.swp
+cscope*
+.DS_Store
+players/
+mud.map
+notes.txt
