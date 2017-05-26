@@ -109,10 +109,8 @@ class GameServer(object):
             elif direction == 'w':  
                 new_location = (player.location[0]-1, player.location[1])
 
-            #print "old=" + str(player.location) + " new=" + str(new_location)
-            #print str(self.map.rooms)
             if new_location in self.map.rooms:
-                self.map.remove_character(self.player)
-                self.map.add_character(self.player, new_location)
+                self.map.remove_character(player)
+                self.map.add_character(player, new_location)
                 return new_location
         return None

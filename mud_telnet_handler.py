@@ -54,6 +54,7 @@ New players, enter NEW as your name.
         new_location = self.game_server.change_location(self.player, direction)
         if new_location is not None:
             self.player.location = new_location
+            self.write_room_desc();
         else:
             self.writeerror("You cannot go that way")
 
