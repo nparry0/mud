@@ -13,6 +13,7 @@ args = parser.parse_args()
 map = Map(args.map)
 row = 0
 col = 0
+level = 0
 
 def prompt(prompt_string, old_string):
     screen.clear()
@@ -50,12 +51,12 @@ while char != ord('q'):
     screen.clear()
     screen.refresh()
     screen.border(0)
-    screen.addstr(1, 1, "Row:" + str(row) + " Col:" + str(col) + "  enter:new del:delete 1:name 2:desc 3:dirs s:save q:quit")
+    screen.addstr(1, 1, "Row:%d Col:%d Level:%d | hjkl/arrows:move u:up d:down enter:new del:delete 1:name 2:desc 3:dirs s:save q:quit" % (row, col, level))
 
     # Print the whole map
     for x in range(2, width-2):
         for y in range(2, height-20):
-            room = map.get_room(col-((width-4)/2-x), row-(y-(height-22)/2))
+            room = map.get_room(col-((width-4)/2-x), row-(y-(height-22)/2), level)
             if room is None:
                 screen.addstr(y, x, " ")
             else:
@@ -63,25 +64,29 @@ while char != ord('q'):
     screen.addstr((height-22)/2, (width-4)/2, "+");
 
     # Print the room details
-    room = map.get_room(col, row)
+    room = map.get_room(col, row, level)
     if room is not None:
         screen.addstr(height-18, 1, "Room: " + room.name)
         screen.addstr(height-17, 1, "Desc: " + room.desc)
-        if "n" in map.rooms[(col, row)].directions:
+        if "u" in map.rooms[(col, row, level)].directions:
+            screen.addstr(height-11, 10, "u")
+        if "n" in map.rooms[(col, row, level)].directions:
             screen.addstr(height-10, 10, "n")
-        if "ne" in map.rooms[(col, row)].directions:
+        if "ne" in map.rooms[(col, row, level)].directions:
             screen.addstr(height-9, 12, "ne")
-        if "e" in map.rooms[(col, row)].directions:
+        if "e" in map.rooms[(col, row, level)].directions:
             screen.addstr(height-8, 14, "e")
-        if "se" in map.rooms[(col, row)].directions:
+        if "se" in map.rooms[(col, row, level)].directions:
             screen.addstr(height-7, 12, "se")
-        if "s" in map.rooms[(col, row)].directions:
+        if "s" in map.rooms[(col, row, level)].directions:
             screen.addstr(height-6, 10, "s")
-        if "sw" in map.rooms[(col, row)].directions:
+        if "d" in map.rooms[(col, row, level)].directions:
+            screen.addstr(height-5, 10, "d")
+        if "sw" in map.rooms[(col, row, level)].directions:
             screen.addstr(height-7, 8, "sw")
-        if "w" in map.rooms[(col, row)].directions:
+        if "w" in map.rooms[(col, row, level)].directions:
             screen.addstr(height-8, 6, "w")
-        if "nw" in map.rooms[(col, row)].directions:
+        if "nw" in map.rooms[(col, row, level)].directions:
             screen.addstr(height-9, 8, "nw")
 
     # Get a character and do something about it
@@ -93,20 +98,20 @@ while char != ord('q'):
         screen.refresh()
         time.sleep(2)
     elif char == curses.KEY_ENTER or char == 10:
-        if (col, row) not in map.rooms:
-            map.rooms[(col, row)] = create_room()
+        if (col, row, level) not in map.rooms:
+            map.rooms[(col, row, level)] = create_room()
     elif char == 127: # backspace
-        if (col, row) in map.rooms:
-            del map.rooms[(col, row)];
+        if (col, row, level) in map.rooms:
+            del map.rooms[(col, row, level)];
     elif char == ord('1'):
-        if (col, row) in map.rooms:
-            map.rooms[(col, row)].name = prompt("=== Name ===", map.rooms[(col, row)].name)
+        if (col, row, level) in map.rooms:
+            map.rooms[(col, row, level)].name = prompt("=== Name ===", map.rooms[(col, row, level)].name)
     elif char == ord('2'):
-        if (col, row) in map.rooms:
-            map.rooms[(col, row)].desc = prompt("=== Desc ===", map.rooms[(col, row)].desc)
+        if (col, row, level) in map.rooms:
+            map.rooms[(col, row, level)].desc = prompt("=== Desc ===", map.rooms[(col, row, level)].desc)
     elif char == ord('3'):
-        if (col, row) in map.rooms:
-            map.rooms[(col, row)].directions = prompt("=== Directions ===", "").split(" ");
+        if (col, row, level) in map.rooms:
+            map.rooms[(col, row, level)].directions = prompt("=== Directions ===", "").split(" ");
     elif char == curses.KEY_RIGHT or char == 67 or char == ord('l'):
         col = col+1
     elif char == curses.KEY_LEFT or char == 68 or char == ord('h'):
@@ -115,6 +120,10 @@ while char != ord('q'):
         row = row+1
     elif char == curses.KEY_DOWN or char == 66 or char == ord('j'):
         row = row-1
+    elif char == ord('u'):
+        level = level+1
+    elif char == ord('d'):
+        level = level-1
     elif char == ord('q'):
         map.save()
         screen.addstr(2, 1, "Saved: " + args.map)

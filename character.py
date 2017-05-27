@@ -37,7 +37,7 @@ class Character(object):
         self.name = name
         self.hp = 10
         self.mp = 10
-        self.location = (0,0)
+        self.location = (0,0,0)
 
 
 class Player(Character):

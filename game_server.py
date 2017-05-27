@@ -55,9 +55,9 @@ class Map(object):
             except EOFError: 
                 pass
 
-    def get_room(self, x, y):
-        if (x,y) in self.rooms:
-            return self.rooms[(x,y)]
+    def get_room(self, x, y, z):
+        if (x,y,z) in self.rooms:
+            return self.rooms[(x,y,z)]
         return None
 
     def add_character(self, character, location):
@@ -101,13 +101,25 @@ class GameServer(object):
     def change_location(self, player, direction):
         if direction in self.map.rooms[player.location].directions:
             if direction == 'n':  
-                new_location = (player.location[0], player.location[1]+1)
-            elif direction == 's':  
-                new_location = (player.location[0], player.location[1]-1)
-            elif direction == 'e':  
-                new_location = (player.location[0]+1, player.location[1])
+                new_location = (player.location[0],     player.location[1]+1,   player.location[2])
+            if direction == 'ne':
+                new_location = (player.location[0]+1,   player.location[1]+1,   player.location[2])
+            if direction == 'nw':
+                new_location = (player.location[0]-1,   player.location[1]+1,   player.location[2])
+            elif direction == 's':
+                new_location = (player.location[0],     player.location[1]-1,   player.location[2])
+            elif direction == 'se':
+                new_location = (player.location[0]+1,   player.location[1]-1,   player.location[2])
+            elif direction == 'sw':
+                new_location = (player.location[0]-1,   player.location[1]-1,   player.location[2])
+            elif direction == 'e':
+                new_location = (player.location[0]+1,   player.location[1],     player.location[2])
             elif direction == 'w':  
-                new_location = (player.location[0]-1, player.location[1])
+                new_location = (player.location[0]-1,   player.location[1],     player.location[2])
+            elif direction == 'u':
+                new_location = (player.location[0],     player.location[1],     player.location[2]+1)
+            elif direction == 'd':
+                new_location = (player.location[0],     player.location[1],     player.location[2]-1)
 
             if new_location in self.map.rooms:
                 self.map.remove_character(player)

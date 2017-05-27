@@ -109,12 +109,40 @@ New players, enter NEW as your name.
         '''
         self.change_location('n')
 
+    @command(['northwest', 'nw'])
+    def command_northwest(self, params):
+        '''
+        Go northwest
+        '''
+        self.change_location('nw')
+
+    @command(['northeast', 'ne'])
+    def command_northeast(self, params):
+        '''
+        Go northeast
+        '''
+        self.change_location('ne')
+
     @command(['south', 's'])
     def command_south(self, params):
         '''
         Go south
         '''
         self.change_location('s')
+
+    @command(['southwest', 'sw'])
+    def command_southwest(self, params):
+        '''
+        Go southwest
+        '''
+        self.change_location('sw')
+
+    @command(['southeast', 'se'])
+    def command_southeast(self, params):
+        '''
+        Go southeast
+        '''
+        self.change_location('se')
 
     @command(['east', 'e'])
     def command_east(self, params):
@@ -130,7 +158,19 @@ New players, enter NEW as your name.
         '''
         self.change_location('w')
 
+    @command(['up', 'u'])
+    def command_up(self, params):
+        '''
+        Go up
+        '''
+        self.change_location('u')
 
+    @command(['down', 'd'])
+    def command_down(self, params):
+        '''
+        Go down
+        '''
+        self.change_location('d')
 
     def session_start(self):
         while True:
