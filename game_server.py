@@ -6,12 +6,20 @@ from pprint import pprint
 from scipy.sparse import coo_matrix
 import cPickle
 import logging
+from character import Character
+
+
 
 class Room(object):
+
+    SPAWN_POINT_TYPE_NPC = 0
+    # Add more types of spawn points.  Equipment, etc
+
     def __init__(self, name, desc, directions):
         self.name = name
         self.desc = desc
         self.directions = directions
+        self.spawn_points = []
         self.lock = threading.Lock()
         self.characters = {}
 
@@ -24,10 +32,10 @@ class Room(object):
             del self.characters[character.name]
 
     def serialize(self):
-        return (self.name, self.desc, self.directions)
+        return (self.name, self.desc, self.directions, self.spawn_points)
 
     def deserialize(self, data):
-        self.name, self.desc, self.directions = data
+        self.name, self.desc, self.directions, self.spawn_points = data
 
     def get_info(self):
         with self.lock:
@@ -38,6 +46,7 @@ class Map(object):
     def __init__(self, map_file):
         self.rooms = {}
         self.map_file = map_file
+        self.num_spawn_points = 0
 
     def save(self):
         with open(self.map_file, 'wb') as out_file:
@@ -51,6 +60,11 @@ class Map(object):
                     location, room_data = cPickle.load(in_file)
                     room = Room(None, None, None)
                     room.deserialize(room_data)
+                    for spawn_point in room.spawn_points:
+                        if spawn_point["type"] == Room.SPAWN_POINT_TYPE_NPC:
+                            npc = Character(spawn_point["name"], spawn_point["hp"], spawn_point["mp"], location)
+                            room.add_character(npc)
+                        self.num_spawn_points += 1
                     self.rooms[location] = room
             except EOFError: 
                 pass
@@ -77,7 +91,7 @@ class GameServer(object):
         self.map = Map(map)
         self.map.load()
         log = logging.getLogger()
-        log.info("Map initialized from '" + self.map.map_file + "'.  Loaded " + str(len(self.map.rooms)) + " rooms")
+        log.info("Map initialized from '%s'.  Loaded %d rooms with %d spawn points" % (self.map.map_file, len(self.map.rooms), self.map.num_spawn_points))
 
     def add_player(self, player):
         with self.players_lock:

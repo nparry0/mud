@@ -4,6 +4,7 @@ from os import system
 import curses
 from curses.textpad import Textbox, rectangle
 import time
+import pprint
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--map", type=str, default="mud.map", help="Map file")
@@ -32,6 +33,21 @@ def create_room():
     desc = prompt("=== Desc ===", "");
     return Room(name, desc, [])
 
+def create_spawn():
+    spawn_points = []
+    num = int(prompt("=== How many spawn points? ===", ""))
+    for x in range(0, num):
+        type = int(prompt("=== Spawn Point %d: Type (%d=npc) ===" % (x+1, Room.SPAWN_POINT_TYPE_NPC), ""))
+        if type == Room.SPAWN_POINT_TYPE_NPC:
+            spawn_point = {}
+            spawn_point['type'] = type
+            spawn_point['name'] = prompt("=== Spawn Point %d: NPC Name ===" % (x+1), "")
+            spawn_point['hp'] = int(prompt("=== Spawn Point %d: NPC HP ===" % (x+1), ""))
+            spawn_point['mp'] = int(prompt("=== Spawn Point %d: NPC MP ===" % (x+1), ""))
+            spawn_point['time'] = int(prompt("=== Spawn Point %d: Respawn time (seconds) ===" % (x+1), ""))
+        spawn_points.append(spawn_point)
+    return spawn_points
+
 char = 0
 
 screen = curses.initscr()
@@ -51,7 +67,7 @@ while char != ord('q'):
     screen.clear()
     screen.refresh()
     screen.border(0)
-    screen.addstr(1, 1, "Row:%d Col:%d Level:%d | hjkl/arrows:move u:up d:down enter:new del:delete 1:name 2:desc 3:dirs s:save q:quit" % (row, col, level))
+    screen.addstr(1, 1, "Row:%d Col:%d Level:%d | hjkl/arrows:move u:up d:down enter:new del:delete 1:name 2:desc 3:dirs 4:addspawn 5:delspawn s:save q:quit" % (row, col, level))
 
     # Print the whole map
     for x in range(2, width-2):
@@ -89,6 +105,14 @@ while char != ord('q'):
         if "nw" in map.rooms[(col, row, level)].directions:
             screen.addstr(height-9, 8, "nw")
 
+        i=0
+        for spawn_point in room.spawn_points:
+            i += 1
+            if spawn_point["type"] == Room.SPAWN_POINT_TYPE_NPC:
+                msg = "NPC Spawn:%s HP:%d MP:%d time:%d" % (spawn_point["name"], spawn_point["hp"], spawn_point["mp"], spawn_point["time"])
+            screen.addstr(height-11-i, 30, msg)
+
+
     # Get a character and do something about it
     char = screen.getch()
 
@@ -101,7 +125,7 @@ while char != ord('q'):
         if (col, row, level) not in map.rooms:
             map.rooms[(col, row, level)] = create_room()
     elif char == 127: # backspace
-        if (col, row, level) in map.rooms:
+        if prompt("=== Delete room, are you sure? ===", "") == "yes" and (col, row, level) in map.rooms:
             del map.rooms[(col, row, level)];
     elif char == ord('1'):
         if (col, row, level) in map.rooms:
@@ -112,6 +136,12 @@ while char != ord('q'):
     elif char == ord('3'):
         if (col, row, level) in map.rooms:
             map.rooms[(col, row, level)].directions = prompt("=== Directions ===", "").split(" ");
+    elif char == ord('4'):
+        if (col, row, level) in map.rooms:
+            map.rooms[(col, row, level)].spawn_points = create_spawn()
+    elif char == ord('5'):
+        if prompt("=== Delete spawn points, are you sure? ===", "") == "yes" and (col, row, level) in map.rooms:
+            map.rooms[(col, row, level)].spawn_points = []
     elif char == curses.KEY_RIGHT or char == 67 or char == ord('l'):
         col = col+1
     elif char == curses.KEY_LEFT or char == 68 or char == ord('h'):

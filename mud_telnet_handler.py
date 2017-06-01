@@ -37,9 +37,7 @@ New players, enter NEW as your name.
 
     def write_room_desc(self):
         name, desc, directions, characters = self.game_server.get_room_info(self.player.location);
-        character_list = ""
-        for character in characters:
-           character_list += character 
+        character_list = "\n".join(characters)
         self.writeresponse("""
 %s
         

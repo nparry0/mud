@@ -33,16 +33,16 @@ class Password(object):
 
 
 class Character(object):
-    def __init__(self, name):
+    def __init__(self, name, hp, mp, location):
         self.name = name
-        self.hp = 10
-        self.mp = 10
-        self.location = (0,0,0)
+        self.hp = hp
+        self.mp = mp
+        self.location = location
 
 
 class Player(Character):
     def __init__(self, name, player_dir):
-        Character.__init__(self, name);
+        Character.__init__(self, name, 10, 10, (0,0,0))
         self.player_dir = player_dir
 
     def serialize(self):
