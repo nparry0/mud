@@ -5,6 +5,7 @@ import curses
 from curses.textpad import Textbox, rectangle
 import time
 import pprint
+from character import NPC
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--map", type=str, default="mud.map", help="Map file")
@@ -44,6 +45,9 @@ def create_spawn():
             spawn_point['name'] = prompt("=== Spawn Point %d: NPC Name ===" % (x+1), "")
             spawn_point['hp'] = int(prompt("=== Spawn Point %d: NPC HP ===" % (x+1), ""))
             spawn_point['mp'] = int(prompt("=== Spawn Point %d: NPC MP ===" % (x+1), ""))
+            spawn_point['aggro'] = \
+                int(prompt("=== Spawn Point %d: NPC Aggro (%d=friend, %d=neutral %d=hostile) ===" %
+                           (x+1, NPC.AGGRO_FRIENDLY, NPC.AGGRO_NEUTRAL, NPC.AGGRO_HOSTILE), ""))
             spawn_point['time'] = int(prompt("=== Spawn Point %d: Respawn time (seconds) ===" % (x+1), ""))
         spawn_points.append(spawn_point)
     return spawn_points
@@ -109,8 +113,9 @@ while char != ord('q'):
         for spawn_point in room.spawn_points:
             i += 1
             if spawn_point["type"] == Room.SPAWN_POINT_TYPE_NPC:
-                msg = "NPC Spawn:%s HP:%d MP:%d time:%d" % (spawn_point["name"], spawn_point["hp"], spawn_point["mp"], spawn_point["time"])
-            screen.addstr(height-11-i, 30, msg)
+                msg = "NPC Spawn:%s HP:%d MP:%d Aggro:%d time:%d" % \
+                      (spawn_point["name"], spawn_point["hp"], spawn_point["mp"], spawn_point["aggro"], spawn_point["time"])
+            screen.addstr(height-11+i, 30, msg)
 
 
     # Get a character and do something about it

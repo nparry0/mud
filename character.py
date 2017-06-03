@@ -1,8 +1,6 @@
 import cPickle
 import os.path
 import hashlib, uuid
-import mud_utils
-import pprint
 
 # TODO: load/save should not include the player_dir
 # TODO: Create Saveable class, for player, pass, and map?  include version?
@@ -38,6 +36,17 @@ class Character(object):
         self.hp = hp
         self.mp = mp
         self.location = location
+
+
+class NPC(Character):
+
+    AGGRO_FRIENDLY = 0
+    AGGRO_NEUTRAL = 1
+    AGGRO_HOSTILE = 2
+
+    def __init__(self, name, hp, mp, location, aggro):
+        Character.__init__(self, name, hp, mp, location)
+        self.aggro = aggro
 
 
 class Player(Character):

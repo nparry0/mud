@@ -6,7 +6,7 @@ from pprint import pprint
 from scipy.sparse import coo_matrix
 import cPickle
 import logging
-from character import Character
+from character import NPC
 
 
 
@@ -62,7 +62,11 @@ class Map(object):
                     room.deserialize(room_data)
                     for spawn_point in room.spawn_points:
                         if spawn_point["type"] == Room.SPAWN_POINT_TYPE_NPC:
-                            npc = Character(spawn_point["name"], spawn_point["hp"], spawn_point["mp"], location)
+                            npc = NPC(spawn_point["name"],
+                                      spawn_point["hp"],
+                                      spawn_point["mp"],
+                                      location,
+                                      spawn_point["aggro"])
                             room.add_character(npc)
                         self.num_spawn_points += 1
                     self.rooms[location] = room
