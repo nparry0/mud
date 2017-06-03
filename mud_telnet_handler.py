@@ -52,7 +52,8 @@ New players, enter NEW as your name.
         new_location = self.game_server.change_location(self.player, direction)
         if new_location is not None:
             self.player.location = new_location
-            self.write_room_desc();
+            self.player.save()
+            self.write_room_desc()
         else:
             self.writeerror("You cannot go that way")
 
@@ -203,7 +204,6 @@ New players, enter NEW as your name.
             password_object = Password(name, self.player_dir)
             password_object.save(password)
             self.player = Player(name, self.player_dir)
-            self.player.hp = 3
             self.player.save();
 
         else:

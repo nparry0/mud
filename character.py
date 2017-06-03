@@ -46,7 +46,7 @@ class Player(Character):
         self.player_dir = player_dir
 
     def serialize(self):
-        return (self.name, self.hp, self.mp, self.location)
+        return self.name, self.hp, self.mp, self.location
 
     def deserialize(self, data):
         self.name, self.hp, self.mp, self.location = data
