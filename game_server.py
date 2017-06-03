@@ -39,7 +39,7 @@ class Room(object):
 
     def get_info(self):
         with self.lock:
-            return (self.name, self.desc, self.directions, self.characters.keys())
+            return (self.name, self.desc, self.directions, self.characters)
 
 
 class Map(object):

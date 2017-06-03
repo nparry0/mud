@@ -1,6 +1,6 @@
 import gevent, gevent.server
 from telnetsrv.green import TelnetHandler, command
-from character import Password, Player, player_exists
+from character import Password, Player, NPC, player_exists
 
 
 # The TelnetHandler instance is re-created for each connection.
@@ -25,6 +25,16 @@ New players, enter NEW as your name.
 '''
     PROMPT="mud>"
 
+    def bold(self, text):
+        return "\x1b[1m%s\x1b[0m" % text
+    def green(self, text):
+        return "\x1b[0;32m%s\x1b[0m" % text
+    def red(self, text):
+        return "\x1b[0;31m%s\x1b[0m" % text
+    def yellow(self, text):
+        return "\x1b[0;33m%s\x1b[0m" % text
+
+
     def update_prompt(self):
         self.PROMPT="%dhp %dmp>" % (self.player.hp, self.player.mp)
 
@@ -36,8 +46,23 @@ New players, enter NEW as your name.
 
 
     def write_room_desc(self):
-        name, desc, directions, characters = self.game_server.get_room_info(self.player.location);
-        character_list = "\n".join(characters)
+        name, desc, directions, characters = self.game_server.get_room_info(self.player.location)
+        character_list = []
+        # TODO: Setting that will turn off the colors
+        for name, character in characters.iteritems():
+            if isinstance(character, Player):
+                if character == self.player:
+                    name = self.bold(name)
+            else:
+                character.__class__ = NPC
+                if character.aggro is NPC.AGGRO_FRIENDLY:
+                    name = self.green(name)
+                elif character.aggro is NPC.AGGRO_NEUTRAL:
+                    name = self.yellow(name)
+                elif character.aggro is NPC.AGGRO_HOSTILE:
+                    name = self.red(name)
+            character_list.append(name)
+        character_list = "\n".join(character_list)
         self.writeresponse("""
 %s
         
