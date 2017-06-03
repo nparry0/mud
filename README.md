@@ -1,7 +1,7 @@
 # MUD
 This is a game server for a multi-user dungeon (MUD) written in Python 2
-# Running
-## Map Builder
+## Running
+### Map Builder
 Before you run the game server, you need a map.  To build a map, run 
 
     python map_builder.py
@@ -15,7 +15,7 @@ Basic instructions to create your map are shown on screen.  Press "s" to save, o
       -h, --help  show this help message and exit
       --map MAP   Map file
       
-## MUD Server
+### MUD Server
 Once the map is generated, you can start the server as follows  
 
     $ python mud.py
@@ -33,3 +33,20 @@ On startup, it reads the map from the map file supplied on the command line.  Th
                         Directory where all player data is kept.
       --map MAP             Map file
       --port PORT           Listening port.
+
+## Storyline
+TBD
+
+## TODO
+- [X] Map builder to generate maps
+- [X] MUD server consumes map and generates world
+- [X] Users can register new PKs and log in with old ones
+- [X] PKs can move from room to room
+- [X] Spawn points can be generated with map builder and create NPCs on map load
+- [ ] Combat interaction with NPCs (attacking them, being attacked in return)
+- [ ] Stat system and decide how the stats affect the mechanics of combat
+- [ ] Spawn points generate equipment.  PKs can obtain equipment, and wear it, modifying their stats.
+- [ ] Talk to friendly NPCs.  Shop in stores to purchase equipment and items.
+- [ ] Leveling system, skills or other character mechanics other than stats
+- [ ] Questing system
+- [ ] Settings system to allow users to change personal settings (e.g. screen width, terminal colors on/off, etc)
