@@ -6,8 +6,7 @@ from pprint import pprint
 from scipy.sparse import coo_matrix
 import cPickle
 import logging
-from character import NPC
-
+from character import NPC, Player
 
 
 class Room(object):
@@ -20,8 +19,9 @@ class Room(object):
         self.desc = desc
         self.directions = directions
         self.spawn_points = []
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.characters = {}
+        #self.actions = []
 
     def add_character(self, character):
         with self.lock:
@@ -40,6 +40,33 @@ class Room(object):
     def get_info(self):
         with self.lock:
             return (self.name, self.desc, self.directions, self.characters)
+
+    def broadcast_to_players(self, actor, msg):
+        with self.lock:
+            for name, character in self.characters.iteritems():
+                if isinstance(character, Player):
+                    if actor == None or name != actor.name:
+                        character.net_handler.writemessage(msg)
+                    else:
+                        character.net_handler.writeresponse(msg)
+
+    def add_action(self, action):
+        #self.actions.append(action)
+        pre_msg = action.pre_msg()
+        if pre_msg != None:
+            self.broadcast_to_players(action.actor, pre_msg)
+        if action.time > 0:
+            t = threading.Timer(action.time, self.exec_action, [None, action], {})
+            t.start()
+        else:
+            self.exec_action(action.actor, action)
+
+    def exec_action(self, actor, action):
+        with self.lock:
+            post_msg = action.post_msg()
+            if post_msg != None:
+                self.broadcast_to_players(actor, post_msg)
+        #self.actions.remove(action)
 
 
 class Map(object):
@@ -85,6 +112,11 @@ class Map(object):
     def remove_character(self, character):
         if character.location in self.rooms:
             self.rooms[character.location].remove_character(character)
+
+    def add_action(self, action):
+        if action.location in self.rooms:
+            self.rooms[action.location].add_action(action)
+
 
 
 
@@ -144,3 +176,29 @@ class GameServer(object):
                 self.map.add_character(player, new_location)
                 return new_location
         return None
+
+    def add_action(self, action):
+        self.map.add_action(action)
+
+
+class Action(object):
+
+    ACTION_TYPE_SAY = 0
+
+    def __init__(self, actor, time, type, kwargs):
+        self.actor = actor
+        self.location = actor.location
+        self.time = time
+        self.type = type
+        self.kwargs = kwargs
+
+    def pre_msg(self):
+        if self.time <= 0:
+            return None
+
+        if self.type == self.ACTION_TYPE_SAY:
+            return "%s prepares to speak..." % self.actor.name
+
+    def post_msg(self):
+        if self.type == self.ACTION_TYPE_SAY:
+            return "%s says '%s'" % (self.actor.name, self.kwargs["msg"])

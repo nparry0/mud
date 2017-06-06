@@ -1,6 +1,7 @@
 import gevent, gevent.server
 from telnetsrv.green import TelnetHandler, command
 from character import Password, Player, NPC, player_exists
+from game_server import Action
 
 
 # The TelnetHandler instance is re-created for each connection.
@@ -23,14 +24,17 @@ Or much, if any, content.
 
 New players, enter NEW as your name.
 '''
-    PROMPT="mud>"
+    PROMPT = "mud>"
 
     def bold(self, text):
         return "\x1b[1m%s\x1b[0m" % text
+
     def green(self, text):
         return "\x1b[0;32m%s\x1b[0m" % text
+
     def red(self, text):
         return "\x1b[0;31m%s\x1b[0m" % text
+
     def yellow(self, text):
         return "\x1b[0;33m%s\x1b[0m" % text
 
@@ -42,7 +46,7 @@ New players, enter NEW as your name.
     def writeerror(self, text):
         '''Called to write any error information (like a mistyped command).
         Add a splash of color using ANSI to render the error text in red.  see http://en.wikipedia.org/wiki/ANSI_escape_code'''
-        TelnetHandler.writeerror(self, "\x1b[91m%s\x1b[0m" % text )
+        TelnetHandler.writeerror(self, "\x1b[91m%s\x1b[0m" % text)
 
 
     def write_room_desc(self):
@@ -70,7 +74,7 @@ New players, enter NEW as your name.
 %s
 -------
 %s
-""" % (name, desc, directions, character_list));
+""" % (name, desc, directions, character_list))
 
 
     def change_location(self, direction):
@@ -125,6 +129,7 @@ New players, enter NEW as your name.
         self.writeresponse(players_str);
 
     # TODO: Do I need more locking around player, since even though I own him, other players in the room will be changing him?
+    # When we add/remove from a room, we need to lock the room q.  When we do atomic ops on a PC, we need to lock them.
 
     @command(['north', 'n'])
     def command_north(self, params):
@@ -228,7 +233,7 @@ New players, enter NEW as your name.
             # Everything worked, save password and player
             password_object = Password(name, self.player_dir)
             password_object.save(password)
-            self.player = Player(name, self.player_dir)
+            self.player = Player(name, self.player_dir, self)
             self.player.save();
 
         else:
@@ -241,7 +246,7 @@ New players, enter NEW as your name.
                     break;
                 self.writeresponse("Incorrect password");
 
-            self.player = Player(name, self.player_dir)
+            self.player = Player(name, self.player_dir, self)
             self.player.load()
 
         # We are now playing, whether the player was new or old
@@ -249,6 +254,17 @@ New players, enter NEW as your name.
         self.game_server.add_player(self.player);
         self.write_room_desc();
 
+
+    @command(['say'])
+    def command_attack(self, params):
+        '''
+        Say something to the whole room
+        '''
+        if len(params) < 1:
+            self.writeerror("say what?")
+            return
+        msg = " ".join(params)
+        self.game_server.add_action(Action(self.player, 0, Action.ACTION_TYPE_SAY, {"msg": msg}))
 
 #    def session_end(self):
 #        self.game_server.(self.username);

@@ -50,9 +50,10 @@ class NPC(Character):
 
 
 class Player(Character):
-    def __init__(self, name, player_dir):
+    def __init__(self, name, player_dir, net_handler):
         Character.__init__(self, name, 10, 10, (0,0,0))
         self.player_dir = player_dir
+        self.net_handler = net_handler
 
     def serialize(self):
         return self.name, self.hp, self.mp, self.location
