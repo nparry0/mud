@@ -37,6 +37,11 @@ class Character(object):
         self.mp = mp
         self.location = location
 
+    def mod_hp(self, hp):
+        self.hp += hp
+        if self.hp < 0:
+            self.hp = 0
+
 
 class NPC(Character):
 
@@ -65,6 +70,7 @@ class Player(Character):
         # TODO: Atomic pickle, by rotating old pickle files?
         with open(self.player_dir + self.name + '.save', 'wb') as out_file:
             cPickle.dump(self.serialize(), out_file, cPickle.HIGHEST_PROTOCOL)
+        self.net_handler.update_prompt()
 
     def load(self):
         with open(self.player_dir + self.name + '.save', 'rb') as in_file:

@@ -50,7 +50,7 @@ New players, enter NEW as your name.
 
 
     def write_room_desc(self):
-        name, desc, directions, characters = self.game_server.get_room_info(self.player.location)
+        room_name, room_desc, directions, characters = self.game_server.get_room_info(self.player.location)
         character_list = []
         # TODO: Setting that will turn off the colors
         for name, character in characters.iteritems():
@@ -74,7 +74,7 @@ New players, enter NEW as your name.
 %s
 -------
 %s
-""" % (name, desc, directions, character_list))
+""" % (room_name, room_desc, directions, character_list))
 
 
     def change_location(self, direction):
@@ -201,6 +201,14 @@ New players, enter NEW as your name.
         '''
         self.change_location('d')
 
+    @command(['look'])
+    def command_look(self, params):
+        '''
+        Look at the room
+        '''
+        self.write_room_desc()
+
+
     def session_start(self):
         while True:
             name = self.readline( prompt="What is your name?", echo=True, use_history=False )
@@ -250,13 +258,13 @@ New players, enter NEW as your name.
             self.player.load()
 
         # We are now playing, whether the player was new or old
-        self.update_prompt();
-        self.game_server.add_player(self.player);
-        self.write_room_desc();
+        self.update_prompt()
+        self.game_server.add_player(self.player)
+        self.write_room_desc()
 
 
     @command(['say'])
-    def command_attack(self, params):
+    def command_say(self, params):
         '''
         Say something to the whole room
         '''
@@ -264,7 +272,19 @@ New players, enter NEW as your name.
             self.writeerror("say what?")
             return
         msg = " ".join(params)
-        self.game_server.add_action(Action(self.player, 0, Action.ACTION_TYPE_SAY, {"msg": msg}))
+        self.game_server.add_action(Action(self.player, None, Action.ACTION_TYPE_SAY, {"msg": msg}))
+
+
+    @command(['attack'])
+    def command_attack(self, params):
+        '''
+        Attack a target in the room
+        '''
+        if len(params) < 1:
+            self.writeerror("attack what?")
+            return
+        target = " ".join(params)
+        self.game_server.add_action(Action(self.player, target, Action.ACTION_TYPE_ATTACK, {}))
 
 #    def session_end(self):
 #        self.game_server.(self.username);

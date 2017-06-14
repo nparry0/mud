@@ -7,7 +7,8 @@ from scipy.sparse import coo_matrix
 import cPickle
 import logging
 from character import NPC, Player
-
+import re
+from random import randint
 
 class Room(object):
 
@@ -42,19 +43,29 @@ class Room(object):
             return (self.name, self.desc, self.directions, self.characters)
 
     def broadcast_to_players(self, actor, msg):
-        with self.lock:
-            for name, character in self.characters.iteritems():
-                if isinstance(character, Player):
-                    if actor == None or name != actor.name:
-                        character.net_handler.writemessage(msg)
-                    else:
-                        character.net_handler.writeresponse(msg)
+        for name, character in self.characters.iteritems():
+            if isinstance(character, Player):
+                if actor == None or name != actor.name:
+                    character.net_handler.writemessage(msg)
+                else:
+                    character.net_handler.writeresponse(msg)
 
     def add_action(self, action):
-        #self.actions.append(action)
+        # If there's a target, make sure that target is there first
+        if action.target is not None:
+            targets = {name: value for name, value in self.characters.iteritems() if re.match(action.target, name, re.I)}
+            if len(targets) == 1:
+                action.target_character = targets.itervalues().next()
+            else:
+               # More than one target is ambiguous
+                return  # TODO: return error here??
+
+        # Broadcast pre-msg to tell players what is about to happen
         pre_msg = action.pre_msg()
-        if pre_msg != None:
+        if pre_msg is not None:
             self.broadcast_to_players(action.actor, pre_msg)
+
+        # If this action will happen in the future, set a timer.  Otherwise, do it now
         if action.time > 0:
             t = threading.Timer(action.time, self.exec_action, [None, action], {})
             t.start()
@@ -63,10 +74,16 @@ class Room(object):
 
     def exec_action(self, actor, action):
         with self.lock:
-            post_msg = action.post_msg()
-            if post_msg != None:
-                self.broadcast_to_players(actor, post_msg)
-        #self.actions.remove(action)
+            if action.target_character.name not in self.characters:
+                return  # The target left the room
+            post_msg = action.execute()
+
+            # See if anyone died
+            if action.target_character.hp <= 0:
+                self.characters.pop(action.target_character.name, None)
+
+        if post_msg is not None:
+            self.broadcast_to_players(actor, post_msg)
 
 
 class Map(object):
@@ -118,11 +135,9 @@ class Map(object):
             self.rooms[action.location].add_action(action)
 
 
-
-
 class GameServer(object):
     def __init__(self, map):
-        self.players = {};
+        self.players = {}
         self.players_lock = threading.Lock()
         self.map = Map(map)
         self.map.load()
@@ -184,21 +199,45 @@ class GameServer(object):
 class Action(object):
 
     ACTION_TYPE_SAY = 0
+    ACTION_TYPE_ATTACK = 1
 
-    def __init__(self, actor, time, type, kwargs):
+    def __init__(self, actor, target, type, kwargs):
         self.actor = actor
+        self.target = target
+        self.target_character = None
         self.location = actor.location
-        self.time = time
         self.type = type
         self.kwargs = kwargs
+        self.time = 0
+        if self.type == self.ACTION_TYPE_ATTACK:
+            self.time = 1.0  # TODO: Make the time actually dependent on the actor (e.g. actor.get_attack_speed())
 
     def pre_msg(self):
         if self.time <= 0:
             return None
-
-        if self.type == self.ACTION_TYPE_SAY:
+        elif self.type == self.ACTION_TYPE_SAY:
             return "%s prepares to speak..." % self.actor.name
+        elif self.type == self.ACTION_TYPE_ATTACK:
+            return "%s makes ready their weapon..." % self.actor.name
 
-    def post_msg(self):
+    # Returns the message of what happened.  Assumes the target exists.
+    def execute(self):
         if self.type == self.ACTION_TYPE_SAY:
             return "%s says '%s'" % (self.actor.name, self.kwargs["msg"])
+
+        elif self.type == self.ACTION_TYPE_ATTACK:
+
+            damage = 1
+            self.target_character.mod_hp(-damage)
+
+            if isinstance(self.target_character, Player):
+                self.target_character.save()
+            elif isinstance(self.target_character, NPC):
+                self.target_character.aggro = NPC.AGGRO_HOSTILE
+                # TODO: Some way to force engagement between player and NPC
+
+            msg = "%s strikes %s for %d damage" % (self.actor.name, self.target_character.name, damage)
+            if self.target_character.hp <= 0:
+                msg += "...and %s is slain." % self.target_character.name
+            return msg
+
