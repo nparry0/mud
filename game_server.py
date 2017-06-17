@@ -54,11 +54,11 @@ class Room(object):
         # If there's a target, make sure that target is there first
         if action.target is not None:
             targets = {name: value for name, value in self.characters.iteritems() if re.match(action.target, name, re.I)}
-            if len(targets) == 1:
+            if len(targets) >= 1: # TODO: Select the 2nd one by adding a "2" to the target
                 action.target_character = targets.itervalues().next()
             else:
-               # More than one target is ambiguous
-                return  # TODO: return error here??
+                action.actor.net_handler.writemessage(action.zero_target_error_msg())
+                return
 
         # Broadcast pre-msg to tell players what is about to happen
         pre_msg = action.pre_msg()
@@ -82,15 +82,22 @@ class Room(object):
             if action.target_character.hp <= 0:
                 self.characters.pop(action.target_character.name, None)
 
-        if post_msg is not None:
-            self.broadcast_to_players(actor, post_msg)
+            # TODO: could this hold the lock for too long?
+            if post_msg is not None:
+                self.broadcast_to_players(actor, post_msg)
+
+            # If the action target is an NPC, their aggro will have been inc'd in action.execute().
+            # This gives the NPC the ability to react
+            if action.target_character.hp > 0 and isinstance(action.target_character, NPC):
+                action.target_character.act()
 
 
 class Map(object):
-    def __init__(self, map_file):
+    def __init__(self, map_file, game_server):
         self.rooms = {}
         self.map_file = map_file
         self.num_spawn_points = 0
+        self.game_server = game_server
 
     def save(self):
         with open(self.map_file, 'wb') as out_file:
@@ -110,7 +117,8 @@ class Map(object):
                                       spawn_point["hp"],
                                       spawn_point["mp"],
                                       location,
-                                      spawn_point["aggro"])
+                                      spawn_point["aggro"],
+                                      self.game_server)
                             room.add_character(npc)
                         self.num_spawn_points += 1
                     self.rooms[location] = room
@@ -139,7 +147,7 @@ class GameServer(object):
     def __init__(self, map):
         self.players = {}
         self.players_lock = threading.Lock()
-        self.map = Map(map)
+        self.map = Map(map, self)
         self.map.load()
         log = logging.getLogger()
         log.info("Map initialized from '%s'.  Loaded %d rooms with %d spawn points" % (self.map.map_file, len(self.map.rooms), self.map.num_spawn_points))
@@ -194,50 +202,3 @@ class GameServer(object):
 
     def add_action(self, action):
         self.map.add_action(action)
-
-
-class Action(object):
-
-    ACTION_TYPE_SAY = 0
-    ACTION_TYPE_ATTACK = 1
-
-    def __init__(self, actor, target, type, kwargs):
-        self.actor = actor
-        self.target = target
-        self.target_character = None
-        self.location = actor.location
-        self.type = type
-        self.kwargs = kwargs
-        self.time = 0
-        if self.type == self.ACTION_TYPE_ATTACK:
-            self.time = 1.0  # TODO: Make the time actually dependent on the actor (e.g. actor.get_attack_speed())
-
-    def pre_msg(self):
-        if self.time <= 0:
-            return None
-        elif self.type == self.ACTION_TYPE_SAY:
-            return "%s prepares to speak..." % self.actor.name
-        elif self.type == self.ACTION_TYPE_ATTACK:
-            return "%s makes ready their weapon..." % self.actor.name
-
-    # Returns the message of what happened.  Assumes the target exists.
-    def execute(self):
-        if self.type == self.ACTION_TYPE_SAY:
-            return "%s says '%s'" % (self.actor.name, self.kwargs["msg"])
-
-        elif self.type == self.ACTION_TYPE_ATTACK:
-
-            damage = 1
-            self.target_character.mod_hp(-damage)
-
-            if isinstance(self.target_character, Player):
-                self.target_character.save()
-            elif isinstance(self.target_character, NPC):
-                self.target_character.aggro = NPC.AGGRO_HOSTILE
-                # TODO: Some way to force engagement between player and NPC
-
-            msg = "%s strikes %s for %d damage" % (self.actor.name, self.target_character.name, damage)
-            if self.target_character.hp <= 0:
-                msg += "...and %s is slain." % self.target_character.name
-            return msg
-

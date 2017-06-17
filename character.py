@@ -49,9 +49,19 @@ class NPC(Character):
     AGGRO_NEUTRAL = 1
     AGGRO_HOSTILE = 2
 
-    def __init__(self, name, hp, mp, location, aggro):
+    def __init__(self, name, hp, mp, location, aggro, game_server):
         Character.__init__(self, name, hp, mp, location)
         self.aggro = aggro
+        self.engaged = None  # Character this NPC is fighting
+        self.game_server = game_server
+
+    def act(self):
+        # 1) If engaged, fight that character
+        if self.engaged is not None:
+            self.game_server.add_action(Action(self, None, self.engaged, Action.ACTION_TYPE_ATTACK, {}))
+
+        # 2) If not engaged, find someone to fight if hostile
+        #elif self.AGGRO_HOSTILE:
 
 
 class Player(Character):
@@ -79,3 +89,54 @@ class Player(Character):
 
 def player_exists(name, player_dir):
     return os.path.isfile(player_dir + name + '.save') 
+
+
+class Action(object):
+
+    ACTION_TYPE_SAY = 0
+    ACTION_TYPE_ATTACK = 1
+
+    def __init__(self, actor, target, target_character, type, kwargs):
+        self.actor = actor
+        self.target = target
+        self.target_character = target_character
+        self.location = actor.location
+        self.type = type
+        self.kwargs = kwargs
+        self.time = 0
+        if self.type == self.ACTION_TYPE_ATTACK:
+            self.time = 1.0  # TODO: Make the time actually dependent on the actor (e.g. actor.get_attack_speed())
+
+    def pre_msg(self):
+        if self.time <= 0:
+            return None
+        elif self.type == self.ACTION_TYPE_SAY:
+            return "%s prepares to speak..." % self.actor.name
+        elif self.type == self.ACTION_TYPE_ATTACK:
+            return "%s makes ready their weapon..." % self.actor.name
+
+    # Returns the message of what happened.  Assumes the target exists.
+    def execute(self):
+        if self.type == self.ACTION_TYPE_SAY:
+            return "%s says '%s'" % (self.actor.name, self.kwargs["msg"])
+
+        elif self.type == self.ACTION_TYPE_ATTACK:
+
+            damage = 1
+            self.target_character.mod_hp(-damage)
+
+            # TODO: Put this back so that hp-- is saved
+            #if isinstance(self.target_character, Player):
+                #self.target_character.save()
+            if isinstance(self.target_character, NPC) and self.target_character.hp > 0:
+                self.target_character.aggro = NPC.AGGRO_HOSTILE
+                self.target_character.engaged = self.actor
+
+            msg = "%s strikes %s for %d damage" % (self.actor.name, self.target_character.name, damage)
+            if self.target_character.hp <= 0:
+                msg += "...and %s is slain." % self.target_character.name
+            return msg
+
+    def zero_target_error_msg(self):
+        if self.type == self.ACTION_TYPE_ATTACK:
+            return "'%s' is not something you can attack" % self.target
