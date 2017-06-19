@@ -40,13 +40,13 @@ TBD
 ## TODO
 - [X] Map builder to generate maps
 - [X] MUD server consumes map and generates world
-- [X] Users can register new PKs and log in with old ones
-- [X] PKs can move from room to room
+- [X] Users can register new PCs and log in with old ones
+- [X] PCs can move from room to room
 - [X] Spawn points can be generated with map builder and create NPCs on map load
 - [ ] Combat interaction with NPCs (attacking them, being attacked in return)
 - [ ] Stat system and decide how the stats affect the mechanics of combat
-- [ ] Spawn points generate equipment.  PKs can obtain equipment, and wear it, modifying their stats.
+- [ ] Spawn points generate equipment.  PCs can obtain equipment, and wear it, modifying their stats.
 - [ ] Talk to friendly NPCs.  Shop in stores to purchase equipment and items.
-- [ ] Leveling system, skills or other character mechanics other than stats
+- [ ] Complete stat system, implementing every attack and spell, as well as side effects (e.g. flame spell burns target)
 - [ ] Questing system
 - [ ] Settings system to allow users to change personal settings (e.g. screen width, terminal colors on/off, etc)
