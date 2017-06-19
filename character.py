@@ -140,3 +140,88 @@ class Action(object):
     def zero_target_error_msg(self):
         if self.type == self.ACTION_TYPE_ATTACK:
             return "'%s' is not something you can attack" % self.target
+
+
+class Stat(object):
+
+    # Base stats
+    STAT_STRENGTH = 0
+    STAT_SPEED = 1
+    STAT_INTELLIGENCE = 2
+
+    # Secondary stats
+    STAT_MELEE = 10
+
+    STAT_RANGED = 20
+
+    STAT_CAST_FLAME = 30
+
+    # Name of the stat
+    names = {
+        STAT_STRENGTH:          "Strength",
+        STAT_SPEED:             "Speed",
+        STAT_INTELLIGENCE:      "Intelligence",
+        STAT_MELEE:             "Melee Attack",
+        STAT_RANGED:            "Ranged Attack",
+        STAT_CAST_FLAME:        "Cast Flame"
+    }
+
+    # Description of the stat
+    descriptions = {
+        STAT_STRENGTH:          "Physical strength and stamina.  Used to determine effectiveness of melee attacks and amount of HP.",
+        STAT_SPEED:             "Speed and dexterity.  Used to determine effectiveness of ranged attacks and evasion.",
+        STAT_INTELLIGENCE:      "Intellect and willpower.  Used to determine effectiveness of magical attacks and magical defense.",
+        STAT_MELEE:             "Strike an opponent with a weapon at close range.  Usage: equip a melee weapon and type 'attack <target>'",
+        STAT_RANGED:            "Fire a ranged weapon at an opponent.  Usage: equip a ranged weapon and type 'attack <target>'",
+        STAT_CAST_FLAME:        "Launch a fireball about as big as a fist towards an opponent.  Usage: 'cast flame <target>'"
+    }
+
+    # Base modifiers (which base stats enhance a secondary stat)
+    base_mod = {
+        STAT_MELEE:             STAT_STRENGTH,
+        STAT_RANGED:            STAT_SPEED,
+        STAT_CAST_FLAME:        STAT_INTELLIGENCE
+    }
+
+    # Dependencies (which stats do you need to be able to access new stats?)
+    deps = {
+
+    }
+
+    def __init__(self, value):
+        self.value = value
+        self.mod_value = value
+
+        self.mod_number = 0
+        self.mod_percent = 1.0
+        self.modifiers = []
+
+    def get_base(self):
+        return int(self.value)
+
+    def get_modified(self):
+        mod_val = int(round((self.value + self.mod_number) * self.mod_percent))
+        if mod_val < 0:
+            return 0
+        return mod_val
+
+    def add_modifier(self, value, is_percent):
+        self.modifiers.append([value, is_percent])
+        if is_percent:
+            self.mod_percent += value
+        else:
+            self.mod_number += value
+        self.mod_value = int(round((self.value + self.mod_number) * self.mod_percent))
+        if self.mod_value < 0:
+            self.mod_value = 0
+
+    def remove_modifier(self, value, is_percent):
+        if [value, is_percent] in self.modifiers:
+            self.modifiers.remove([value, is_percent])
+            if is_percent:
+                self.mod_percent -= value
+            else:
+                self.mod_number -= value
+            self.mod_value = int(round((self.value + self.mod_number) * self.mod_percent))
+            if self.mod_value < 0:
+                self.mod_value = 0
