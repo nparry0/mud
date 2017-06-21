@@ -1,5 +1,5 @@
 from unittest import TestCase
-from character import Stat
+from character import Stat, StatTable
 
 
 class TestStat(TestCase):
@@ -109,7 +109,7 @@ class TestStat(TestCase):
         self.assertEqual(stat.get_base(), 20)
         self.assertEqual(stat.get_modified(), 36)
 
-        stat.remove_modifier(300, False) # Shouldn't do anything
+        stat.remove_modifier(300, False)  # Shouldn't do anything
         self.assertEqual(stat.get_base(), 20)
         self.assertEqual(stat.get_modified(), 36)
 
@@ -128,3 +128,105 @@ class TestStat(TestCase):
         stat.remove_modifier(-0.3, True)
         self.assertEqual(stat.get_base(), 20)
         self.assertEqual(stat.get_modified(), 20)
+
+
+class TestStatTable(TestCase):
+
+    def test_init(self):
+        table = StatTable({
+            Stat.STAT_SPEED: 1,
+            Stat.STAT_INTELLIGENCE: 2,
+        })
+        self.assertEqual(table.get_combined_modified(Stat.STAT_STRENGTH), 0)
+        self.assertEqual(table.get_combined_modified(Stat.STAT_SPEED), 1)
+        self.assertEqual(table.get_combined_modified(Stat.STAT_INTELLIGENCE), 2)
+
+    def test_combined(self):
+        table = StatTable({
+            Stat.STAT_STRENGTH: 1,
+            Stat.STAT_MELEE: 1
+        })
+        self.assertEqual(table.get_combined_modified(Stat.STAT_STRENGTH), 1)
+        self.assertEqual(table.get_combined_modified(Stat.STAT_MELEE), 2)
+
+    def test_combined_modified(self):
+        table = StatTable({
+            Stat.STAT_INTELLIGENCE: 10,
+            Stat.STAT_STRENGTH: 10,
+            Stat.STAT_MELEE: 10
+        })
+
+        table.stats[Stat.STAT_INTELLIGENCE].add_modifier(10, False)
+        table.stats[Stat.STAT_INTELLIGENCE].add_modifier(.5, True)
+        table.stats[Stat.STAT_STRENGTH].add_modifier(-5, False)
+        table.stats[Stat.STAT_STRENGTH].add_modifier(.5, True)
+        table.stats[Stat.STAT_MELEE].add_modifier(20, False)
+        table.stats[Stat.STAT_MELEE].add_modifier(-.7, True)
+
+        self.assertEqual(table.get_combined_modified(Stat.STAT_INTELLIGENCE), 30)
+        self.assertEqual(table.get_combined_modified(Stat.STAT_STRENGTH), 8)
+        self.assertEqual(table.get_combined_modified(Stat.STAT_MELEE), 17)
+
+    def test_get_available_stats(self):
+        table = StatTable()
+        self.assertItemsEqual(table.get_available_stats(), [
+            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
+            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
+        ])
+
+    def test_get_available_stats_not_at_level(self):
+        table = StatTable()
+        table.stats[Stat.STAT_CAST_FLAME].value += 4
+        self.assertItemsEqual(table.get_available_stats(), [
+            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
+            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
+        ])
+
+    def test_get_available_stats_at_level(self):
+        table = StatTable()
+        table.stats[Stat.STAT_CAST_FLAME].value += 5
+        self.assertItemsEqual(table.get_available_stats(), [
+            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
+            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
+            Stat.STAT_CAST_HEAL
+        ])
+
+    def test_get_available_stats_deep_not_at_level(self):
+        table = StatTable()
+        table.stats[Stat.STAT_CAST_FLAME].value += 5
+        table.stats[Stat.STAT_CAST_HEAL].value += 4
+        self.assertItemsEqual(table.get_available_stats(), [
+            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
+            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
+            Stat.STAT_CAST_HEAL
+        ])
+
+    def test_get_available_stats_deep_at_level(self):
+        table = StatTable()
+        table.stats[Stat.STAT_CAST_FLAME].value += 5
+        table.stats[Stat.STAT_CAST_HEAL].value += 5
+        self.assertItemsEqual(table.get_available_stats(), [
+            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
+            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
+            Stat.STAT_CAST_HEAL, Stat.STAT_CAST_CHILL
+        ])
+
+    def test_get_available_stats_wide_not_at_level(self):
+        table = StatTable()
+        table.stats[Stat.STAT_CAST_FLAME].value += 5
+        table.stats[Stat.STAT_MELEE].value += 9
+        self.assertItemsEqual(table.get_available_stats(), [
+            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
+            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
+            Stat.STAT_CAST_HEAL
+        ])
+
+    def test_get_available_stats_wide_at_level(self):
+        table = StatTable()
+        table.stats[Stat.STAT_CAST_FLAME].value += 5
+        table.stats[Stat.STAT_MELEE].value += 10
+        self.assertItemsEqual(table.get_available_stats(), [
+            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
+            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
+            Stat.STAT_CAST_HEAL, Stat.STAT_CAST_FLAMING_SWORD
+        ])
