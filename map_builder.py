@@ -1,10 +1,7 @@
 from game_server import Map, Room
 import argparse
-from os import system
 import curses
-from curses.textpad import Textbox, rectangle
 import time
-import pprint
 from character import NPC
 
 parser = argparse.ArgumentParser()

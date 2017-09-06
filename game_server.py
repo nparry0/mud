@@ -1,14 +1,9 @@
 import threading
-import json
-import os
-import mud_utils
-from pprint import pprint
-from scipy.sparse import coo_matrix
 import cPickle
 import logging
 from character import NPC, Player
 import re
-from random import randint
+
 
 class Room(object):
 
@@ -22,7 +17,6 @@ class Room(object):
         self.spawn_points = []
         self.lock = threading.RLock()
         self.characters = {}
-        #self.actions = []
 
     def add_character(self, character):
         with self.lock:
@@ -33,19 +27,19 @@ class Room(object):
             del self.characters[character.name]
 
     def serialize(self):
-        return (self.name, self.desc, self.directions, self.spawn_points)
+        return self.name, self.desc, self.directions, self.spawn_points
 
     def deserialize(self, data):
         self.name, self.desc, self.directions, self.spawn_points = data
 
     def get_info(self):
         with self.lock:
-            return (self.name, self.desc, self.directions, self.characters)
+            return self.name, self.desc, self.directions, self.characters
 
     def broadcast_to_players(self, actor, msg):
         for name, character in self.characters.iteritems():
             if isinstance(character, Player):
-                if actor == None or name != actor.name:
+                if actor is None or name != actor.name:
                     character.net_handler.writemessage(msg)
                 else:
                     character.net_handler.writeresponse(msg)
@@ -54,7 +48,7 @@ class Room(object):
         # If there's a target, make sure that target is there first
         if action.target is not None:
             targets = {name: value for name, value in self.characters.iteritems() if re.match(action.target, name, re.I)}
-            if len(targets) >= 1: # TODO: Select the 2nd one by adding a "2" to the target
+            if len(targets) >= 1:  # TODO: Select the 2nd one by adding a "2" to the target
                 action.target_character = targets.itervalues().next()
             else:
                 action.actor.net_handler.writemessage(action.zero_target_error_msg())
@@ -163,8 +157,8 @@ class GameServer(object):
 
     def get_players(self):
         with self.players_lock:
-            list = self.players.keys()
-        return list
+            players = self.players.keys()
+        return players
 
     def get_room_info(self, location):
         if location in self.map.rooms:

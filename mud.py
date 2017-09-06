@@ -1,8 +1,7 @@
-import gevent, gevent.server
+import gevent.server
 from mud_telnet_handler import MudTelnetHandler
 from game_server import GameServer
 import argparse
-import mud_utils
 import logging
 
 # Set up logging

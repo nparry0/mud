@@ -1,6 +1,7 @@
 import cPickle
 import os.path
-import hashlib, uuid
+import hashlib
+import uuid
 
 # TODO: load/save should not include the player_dir
 # TODO: Create Saveable class, for player, pass, and map?  include version?
