@@ -146,131 +146,128 @@ class Action(object):
 class Stat(object):
 
     # Base stats
-    STAT_STRENGTH = 0
-    STAT_SPEED = 1
-    STAT_INTELLIGENCE = 2
+    STRENGTH = 0
+    SPEED = 1
+    INTELLIGENCE = 2
 
     # Secondary stats
-    STAT_MELEE = 10
+    MELEE = 10
 
-    STAT_RANGED = 20
+    RANGED = 20
 
-    STAT_CAST_FLAME = 30
-    STAT_CAST_HEAL = 31
-    STAT_CAST_CHILL = 32
-    STAT_CAST_FLAMING_SWORD = 33
+    CAST_FLAME = 30
+    CAST_HEAL = 31
+    CAST_CHILL = 32
+    CAST_FLAMING_SWORD = 33
 
     # Name of the stat
     names = {
-        STAT_STRENGTH:              "Strength",
-        STAT_SPEED:                 "Speed",
-        STAT_INTELLIGENCE:          "Intelligence",
-        STAT_MELEE:                 "Melee Attack",
-        STAT_RANGED:                "Ranged Attack",
-        STAT_CAST_FLAME:            "Cast Flame",
-        STAT_CAST_HEAL:             "Cast Heal",
-        STAT_CAST_CHILL:            "Cast Chill",
-        STAT_CAST_FLAMING_SWORD:    "Cast Flaming Sword"
+        STRENGTH: "Strength",
+        SPEED: "Speed",
+        INTELLIGENCE: "Intelligence",
+        MELEE: "Melee Attack",
+        RANGED: "Ranged Attack",
+        CAST_FLAME: "Cast Flame",
+        CAST_HEAL: "Cast Heal",
+        CAST_CHILL: "Cast Chill",
+        CAST_FLAMING_SWORD: "Cast Flaming Sword"
     }
 
     # Description of the stat
+    # TODO: Descriptions like this should be in some sort of documentation resource file
     descriptions = {
-        STAT_STRENGTH:              "Physical strength and stamina.  Used to determine effectiveness of melee attacks and amount of HP.",
-        STAT_SPEED:                 "Speed and dexterity.  Used to determine effectiveness of ranged attacks and evasion.",
-        STAT_INTELLIGENCE:          "Intellect and willpower.  Used to determine effectiveness of magical attacks and magical defense.",
-        STAT_MELEE:                 "Strike an opponent with a weapon at close range.  Usage: equip a melee weapon and type 'attack <target>'",
-        STAT_RANGED:                "Fire a ranged weapon at an opponent.  Usage: equip a ranged weapon and type 'attack <target>'",
-        STAT_CAST_FLAME:            "Launch a fireball about as big as a fist towards an opponent.  Usage: 'cast flame <target>'",
-        STAT_CAST_HEAL:             "TBD",
-        STAT_CAST_CHILL:            "TBD",
-        STAT_CAST_FLAMING_SWORD:    "TBD"
+        STRENGTH: "Physical strength and stamina.  Used to determine effectiveness of melee attacks and amount of HP.",
+        SPEED: "Speed and dexterity.  Used to determine effectiveness of ranged attacks and evasion.",
+        INTELLIGENCE: "Intellect and willpower.  Used to determine effectiveness of magical attacks and magical defense.",
+        MELEE: "Strike an opponent with a weapon at close range.  Usage: equip a melee weapon and type 'attack <target>'",
+        RANGED: "Fire a ranged weapon at an opponent.  Usage: equip a ranged weapon and type 'attack <target>'",
+        CAST_FLAME: "Launch a fireball about as big as a fist towards an opponent.  Usage: 'cast flame <target>'",
+        CAST_HEAL: "TBD",
+        CAST_CHILL: "TBD",
+        CAST_FLAMING_SWORD: "TBD"
     }
 
     def __init__(self, value):
-        self.value = value
-        self.mod_value = value
+        self._value = value
+        self._mod_value = value
 
-        self.mod_number = 0
-        self.mod_percent = 1.0
-        self.modifiers = []
+        self._mod_number = 0
+        self._mod_percent = 1.0
+        self._modifiers = []
 
-    def get_base(self):
-        return int(self.value)
+    @property
+    def base(self):
+        return int(self._value)
 
-    def get_modified(self):
-        mod_val = int(round((self.value + self.mod_number) * self.mod_percent))
+    @property
+    def modified(self):
+        mod_val = int(round((self._value + self._mod_number) * self._mod_percent))
         if mod_val < 0:
             return 0
         return mod_val
 
     def add_modifier(self, value, is_percent):
-        self.modifiers.append([value, is_percent])
+        self._modifiers.append([value, is_percent])
         if is_percent:
-            self.mod_percent += value
+            self._mod_percent += value
         else:
-            self.mod_number += value
-        self.mod_value = int(round((self.value + self.mod_number) * self.mod_percent))
-        if self.mod_value < 0:
-            self.mod_value = 0
+            self._mod_number += value
 
     def remove_modifier(self, value, is_percent):
-        if [value, is_percent] in self.modifiers:
-            self.modifiers.remove([value, is_percent])
+        if [value, is_percent] in self._modifiers:
+            self._modifiers.remove([value, is_percent])
             if is_percent:
-                self.mod_percent -= value
+                self._mod_percent -= value
             else:
-                self.mod_number -= value
-            self.mod_value = int(round((self.value + self.mod_number) * self.mod_percent))
-            if self.mod_value < 0:
-                self.mod_value = 0
+                self._mod_number -= value
 
 
 class StatTable(object):
 
     # Base modifiers (which base stats enhance a secondary stat)
     base_mod = {
-        Stat.STAT_MELEE:                Stat.STAT_STRENGTH,
-        Stat.STAT_RANGED:               Stat.STAT_SPEED,
-        Stat.STAT_CAST_FLAME:           Stat.STAT_INTELLIGENCE,
-        Stat.STAT_CAST_HEAL:            Stat.STAT_INTELLIGENCE,
-        Stat.STAT_CAST_CHILL:           Stat.STAT_INTELLIGENCE,
-        Stat.STAT_CAST_FLAMING_SWORD:   Stat.STAT_INTELLIGENCE
+        Stat.MELEE:                Stat.STRENGTH,
+        Stat.RANGED:               Stat.SPEED,
+        Stat.CAST_FLAME:           Stat.INTELLIGENCE,
+        Stat.CAST_HEAL:            Stat.INTELLIGENCE,
+        Stat.CAST_CHILL:           Stat.INTELLIGENCE,
+        Stat.CAST_FLAMING_SWORD:   Stat.INTELLIGENCE
     }
 
     # Dependencies (which stats do you need to be able to access new stats?)
     deps = {
-        Stat.STAT_STRENGTH: [],
-        Stat.STAT_SPEED: [],
-        Stat.STAT_INTELLIGENCE: [],
-        Stat.STAT_MELEE: [],
-        Stat.STAT_RANGED: [],
-        Stat.STAT_CAST_FLAME: [],
-        Stat.STAT_CAST_HEAL: [
-            {'stat': Stat.STAT_CAST_FLAME, 'level': 5}
+        Stat.STRENGTH: [],
+        Stat.SPEED: [],
+        Stat.INTELLIGENCE: [],
+        Stat.MELEE: [],
+        Stat.RANGED: [],
+        Stat.CAST_FLAME: [],
+        Stat.CAST_HEAL: [
+            {'stat': Stat.CAST_FLAME, 'level': 5}
         ],
-        Stat.STAT_CAST_CHILL: [
-            {'stat': Stat.STAT_CAST_HEAL, 'level': 5}
+        Stat.CAST_CHILL: [
+            {'stat': Stat.CAST_HEAL, 'level': 5}
         ],
-        Stat.STAT_CAST_FLAMING_SWORD: [
-            {'stat': Stat.STAT_CAST_FLAME, 'level': 5},
-            {'stat': Stat.STAT_MELEE,      'level': 10}
+        Stat.CAST_FLAMING_SWORD: [
+            {'stat': Stat.CAST_FLAME, 'level': 5},
+            {'stat': Stat.MELEE, 'level': 10}
         ]
     }
 
     # Initialize with {stat_enum: int, stat_enum: int}
-    def __init__(self, stats=None):
-        self.stats = {}
+    def __init__(self, stats={}):
+        self._stats = {}
         for stat in StatTable.deps:
-            if stats is not None and stat in stats:
-                self.stats[stat] = Stat(stats[stat])
+            if stat in stats:
+                self._stats[stat] = Stat(stats[stat])
             else:
-                self.stats[stat] = Stat(0)
+                self._stats[stat] = Stat(0)
 
     def get_combined_modified(self, stat):
         if stat in StatTable.base_mod:
-            return self.stats[stat].get_modified() + self.stats[StatTable.base_mod[stat]].get_modified()
+            return self._stats[stat].modified + self._stats[StatTable.base_mod[stat]].modified
         else:
-            return self.stats[stat].get_modified()
+            return self._stats[stat].modified
 
     # Get a list of all stats where deps have been met
     def get_available_stats(self):
@@ -278,7 +275,7 @@ class StatTable(object):
         for stat in StatTable.deps:
             should_add = True
             for dep in StatTable.deps[stat]:
-                if self.stats[dep['stat']].get_base() < dep['level']:
+                if self._stats[dep['stat']].base < dep['level']:
                     should_add = False
                     break
             if should_add:

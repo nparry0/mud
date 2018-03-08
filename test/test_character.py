@@ -1,232 +1,159 @@
-from unittest import TestCase
+import pytest
 from character import Stat, StatTable
 
 
-class TestStat(TestCase):
-    def test_no_mod(self):
-        stat = Stat(20)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 20)
+class TestStat:
 
-    # Numbers
-    def test_number_mod(self):
-        stat = Stat(20)
-        stat.add_modifier(10, False)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 30)
+    ADD = 0
+    REM = 1
 
-    def test_multi_number_mod(self):
-        stat = Stat(20)
-        stat.add_modifier(10, False)
-        stat.add_modifier(5, False)
-        stat.add_modifier(-12, False)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 23)
-
-    def test_number_mod_below_zero(self):
-        stat = Stat(20)
-        stat.add_modifier(-15, False)
-        stat.add_modifier(-15, False)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 0)
-
-    def test_multi_number_remove_mod(self):
-        stat = Stat(20)
-        stat.add_modifier(10, False)
-        stat.add_modifier(5, False)
-        stat.add_modifier(-12, False)
-        stat.remove_modifier(10, False)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 13)
-
-    # Percents
-    def test_percent_mod(self):
-        stat = Stat(20)
-        stat.add_modifier(0.5, True)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 30)
-
-    def test_multi_percent_mod(self):
-        stat = Stat(20)
-        stat.add_modifier(0.5, True)
-        stat.add_modifier(0.2, True)
-        stat.add_modifier(-0.3, True)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 28)
-
-    def test_percent_mod_below_zero(self):
-        stat = Stat(20)
-        stat.add_modifier(-0.6, True)
-        stat.add_modifier(-0.6, True)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 0)
-
-    def test_multi_percent_remove_mod(self):
-        stat = Stat(20)
-        stat.add_modifier(0.5, True)
-        stat.add_modifier(0.2, True)
-        stat.add_modifier(-0.3, True)
-        stat.remove_modifier(0.2, True)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 24)
-
-    def test_percent_round_up(self):
-        stat = Stat(3)
-        stat.add_modifier(0.5, True)
-        self.assertEqual(stat.get_base(), 3)
-        self.assertEqual(stat.get_modified(), 5)
-
-    def test_percent_round_down(self):
-        stat = Stat(3)
-        stat.add_modifier(0.4, True)
-        self.assertEqual(stat.get_base(), 3)
-        self.assertEqual(stat.get_modified(), 4)
-
-    # Both numbers and percents
-    def test_remove_nothing(self):
-        stat = Stat(20)
-        stat.add_modifier(10, False)
-        stat.remove_modifier(20, False)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 30)
+    @pytest.mark.parametrize("starting_base,mods,expected_base,expected_modified", [
+        (20, [], 20, 20),
+        (20, [(ADD, 10, False)],                                                        20, 30),
+        (20, [(ADD, 10, False), (ADD, 5, False), (ADD, -12, False)],                    20, 23),
+        (20, [(ADD, -15, False), (ADD, -15, False)],                                    20, 0),
+        (20, [(ADD, 10, False), (ADD, 5, False), (ADD, -12, False), (REM, 10, False)],  20, 13),
+        (20, [(ADD, 0.5, True)],                                                        20, 30),
+        (20, [(ADD, 0.5, True), (ADD, 0.2, True), (ADD, -0.3, True)],                   20, 28),
+        (20, [(ADD, -0.6, True), (ADD, -0.6, True)],                                    20, 0),
+        (20, [(ADD, 0.5, True), (ADD, 0.2, True), (ADD, -0.3, True), (REM, 0.2, True)], 20, 24),
+        (3,  [(ADD, 0.5, True)],                                                        3, 5),  # round up
+        (3,  [(ADD, 0.4, True)],                                                        3, 4),  # round down
+        (20, [(ADD, 10, False),  (REM, 20, False)],                                     20, 30),  # remove nothing
+    ])
+    def test_stat(self, starting_base, mods, expected_base, expected_modified):
+        stat = Stat(starting_base)
+        for mod in mods:
+            if mod[0] == TestStat.ADD:
+                stat.add_modifier(mod[1], mod[2])
+            else:
+                stat.remove_modifier(mod[1], mod[2])
+        assert stat.base == expected_base
+        assert stat.modified == expected_modified
 
     def test_multi_add_remove(self):
         stat = Stat(20)
 
+        def check_stat(expected_base, expected_modified):
+            assert stat.base == expected_base
+            assert stat.modified == expected_modified
+
         stat.add_modifier(0.5, True)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 30)
-
+        check_stat(20, 30)
         stat.add_modifier(-0.3, True)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 24)
-
+        check_stat(20, 24)
         stat.add_modifier(15, False)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 42)
-
+        check_stat(20, 42)
         stat.add_modifier(-5, False)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 36)
-
+        check_stat(20, 36)
         stat.remove_modifier(300, False)  # Shouldn't do anything
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 36)
-
+        check_stat(20, 36)
         stat.remove_modifier(0.5, True)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 21)
-
+        check_stat(20, 21)
         stat.remove_modifier(-5, False)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 25)
-
+        check_stat(20, 25)
         stat.remove_modifier(15, False)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 14)
-
+        check_stat(20, 14)
         stat.remove_modifier(-0.3, True)
-        self.assertEqual(stat.get_base(), 20)
-        self.assertEqual(stat.get_modified(), 20)
+        check_stat(20, 20)
 
 
-class TestStatTable(TestCase):
+class TestStatTable:
 
-    def test_init(self):
-        table = StatTable({
-            Stat.STAT_SPEED: 1,
-            Stat.STAT_INTELLIGENCE: 2,
-        })
-        self.assertEqual(table.get_combined_modified(Stat.STAT_STRENGTH), 0)
-        self.assertEqual(table.get_combined_modified(Stat.STAT_SPEED), 1)
-        self.assertEqual(table.get_combined_modified(Stat.STAT_INTELLIGENCE), 2)
+    @pytest.mark.parametrize("starting,mods,expects", [
+        # Basic test
+        (
+            {Stat.SPEED: 1, Stat.INTELLIGENCE: 2},
+            [],
+            [(Stat.STRENGTH, 0), (Stat.SPEED, 1), (Stat.INTELLIGENCE, 2)]
+        ),
+        # Test combined
+        (
+            {Stat.STRENGTH: 1, Stat.MELEE: 1},
+            [],
+            [(Stat.STRENGTH, 1), (Stat.MELEE, 2)],
+        ),
+        # Combined and modified
+        (
+            {Stat.INTELLIGENCE: 10, Stat.STRENGTH: 10, Stat.MELEE: 10},
+            [
+                (Stat.INTELLIGENCE, 10, False),
+                (Stat.INTELLIGENCE, .5, True),
+                (Stat.STRENGTH, -5, False),
+                (Stat.STRENGTH, .5, True),
+                (Stat.MELEE, 20, False),
+                (Stat.MELEE, -.7, True),
+            ],
+            [(Stat.INTELLIGENCE, 30), (Stat.STRENGTH, 8), (Stat.MELEE, 17)]
+        )
+    ])
+    def test_get_combined_modified(self, starting, mods, expects):
+        table = StatTable(starting)
+        for mod in mods:
+            table._stats[mod[0]].add_modifier(mod[1], mod[2])
+        for expect in expects:
+            actual = table.get_combined_modified(expect[0])
+            assert actual == expect[1], '{}: expected {}, but got {}'.format(Stat.names[expect[0]], expect[1], actual)
 
-    def test_combined(self):
-        table = StatTable({
-            Stat.STAT_STRENGTH: 1,
-            Stat.STAT_MELEE: 1
-        })
-        self.assertEqual(table.get_combined_modified(Stat.STAT_STRENGTH), 1)
-        self.assertEqual(table.get_combined_modified(Stat.STAT_MELEE), 2)
-
-    def test_combined_modified(self):
-        table = StatTable({
-            Stat.STAT_INTELLIGENCE: 10,
-            Stat.STAT_STRENGTH: 10,
-            Stat.STAT_MELEE: 10
-        })
-
-        table.stats[Stat.STAT_INTELLIGENCE].add_modifier(10, False)
-        table.stats[Stat.STAT_INTELLIGENCE].add_modifier(.5, True)
-        table.stats[Stat.STAT_STRENGTH].add_modifier(-5, False)
-        table.stats[Stat.STAT_STRENGTH].add_modifier(.5, True)
-        table.stats[Stat.STAT_MELEE].add_modifier(20, False)
-        table.stats[Stat.STAT_MELEE].add_modifier(-.7, True)
-
-        self.assertEqual(table.get_combined_modified(Stat.STAT_INTELLIGENCE), 30)
-        self.assertEqual(table.get_combined_modified(Stat.STAT_STRENGTH), 8)
-        self.assertEqual(table.get_combined_modified(Stat.STAT_MELEE), 17)
-
-    def test_get_available_stats(self):
-        table = StatTable()
-        self.assertItemsEqual(table.get_available_stats(), [
-            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
-            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
-        ])
-
-    def test_get_available_stats_not_at_level(self):
-        table = StatTable()
-        table.stats[Stat.STAT_CAST_FLAME].value += 4
-        self.assertItemsEqual(table.get_available_stats(), [
-            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
-            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
-        ])
-
-    def test_get_available_stats_at_level(self):
-        table = StatTable()
-        table.stats[Stat.STAT_CAST_FLAME].value += 5
-        self.assertItemsEqual(table.get_available_stats(), [
-            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
-            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
-            Stat.STAT_CAST_HEAL
-        ])
-
-    def test_get_available_stats_deep_not_at_level(self):
-        table = StatTable()
-        table.stats[Stat.STAT_CAST_FLAME].value += 5
-        table.stats[Stat.STAT_CAST_HEAL].value += 4
-        self.assertItemsEqual(table.get_available_stats(), [
-            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
-            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
-            Stat.STAT_CAST_HEAL
-        ])
-
-    def test_get_available_stats_deep_at_level(self):
-        table = StatTable()
-        table.stats[Stat.STAT_CAST_FLAME].value += 5
-        table.stats[Stat.STAT_CAST_HEAL].value += 5
-        self.assertItemsEqual(table.get_available_stats(), [
-            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
-            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
-            Stat.STAT_CAST_HEAL, Stat.STAT_CAST_CHILL
-        ])
-
-    def test_get_available_stats_wide_not_at_level(self):
-        table = StatTable()
-        table.stats[Stat.STAT_CAST_FLAME].value += 5
-        table.stats[Stat.STAT_MELEE].value += 9
-        self.assertItemsEqual(table.get_available_stats(), [
-            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
-            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
-            Stat.STAT_CAST_HEAL
-        ])
-
-    def test_get_available_stats_wide_at_level(self):
-        table = StatTable()
-        table.stats[Stat.STAT_CAST_FLAME].value += 5
-        table.stats[Stat.STAT_MELEE].value += 10
-        self.assertItemsEqual(table.get_available_stats(), [
-            Stat.STAT_STRENGTH, Stat.STAT_SPEED, Stat.STAT_INTELLIGENCE,
-            Stat.STAT_MELEE, Stat.STAT_RANGED, Stat.STAT_CAST_FLAME,
-            Stat.STAT_CAST_HEAL, Stat.STAT_CAST_FLAMING_SWORD
-        ])
+    @pytest.mark.parametrize("starting,expected", [
+        (
+           {},
+           [
+               Stat.STRENGTH, Stat.SPEED, Stat.INTELLIGENCE,
+               Stat.MELEE, Stat.RANGED, Stat.CAST_FLAME
+           ]
+        ),
+        (
+            {Stat.CAST_FLAME: 4},
+            [
+                Stat.STRENGTH, Stat.SPEED, Stat.INTELLIGENCE,
+                Stat.MELEE, Stat.RANGED, Stat.CAST_FLAME
+            ]
+        ),
+        (
+            {Stat.CAST_FLAME: 5},
+            [
+                Stat.STRENGTH, Stat.SPEED, Stat.INTELLIGENCE,
+                Stat.MELEE, Stat.RANGED, Stat.CAST_FLAME,
+                Stat.CAST_HEAL
+            ]
+        ),
+        (
+            {Stat.CAST_FLAME: 5, Stat.CAST_HEAL: 4},
+            [
+                Stat.STRENGTH, Stat.SPEED, Stat.INTELLIGENCE,
+                Stat.MELEE, Stat.RANGED, Stat.CAST_FLAME,
+                Stat.CAST_HEAL
+            ]
+        ),
+        (
+            {Stat.CAST_FLAME: 5, Stat.CAST_HEAL: 5},
+            [
+                Stat.STRENGTH, Stat.SPEED, Stat.INTELLIGENCE,
+                Stat.MELEE, Stat.RANGED, Stat.CAST_FLAME,
+                Stat.CAST_HEAL, Stat.CAST_CHILL
+            ]
+        ),
+        (
+            {Stat.CAST_FLAME: 5, Stat.MELEE: 9},
+            [
+                Stat.STRENGTH, Stat.SPEED, Stat.INTELLIGENCE,
+                Stat.MELEE, Stat.RANGED, Stat.CAST_FLAME,
+                Stat.CAST_HEAL
+            ]
+        ),
+        (
+            {Stat.CAST_FLAME: 5, Stat.MELEE: 10},
+            [
+                Stat.STRENGTH, Stat.SPEED, Stat.INTELLIGENCE,
+                Stat.MELEE, Stat.RANGED, Stat.CAST_FLAME,
+                Stat.CAST_HEAL, Stat.CAST_FLAMING_SWORD
+            ]
+        ),
+    ])
+    def test_get_available_stats(self, starting, expected):
+        table = StatTable(starting)
+        actual = table.get_available_stats()
+        actual.sort()
+        expected.sort()
+        assert actual == expected
