@@ -61,19 +61,25 @@ class Room(object):
 
         # If this action will happen in the future, set a timer.  Otherwise, do it now
         if action.time > 0:
-            t = threading.Timer(action.time, self.exec_action, [None, action], {})
+            t = threading.Timer(action.time, self.exec_action, [action.actor, action], {})
             t.start()
         else:
             self.exec_action(action.actor, action)
 
     def exec_action(self, actor, action):
         with self.lock:
-            if action.target_character.name not in self.characters:
-                return  # The target left the room
+            # Skip if the target has left the room
+            if action.target_character and action.target_character.name not in self.characters:
+                return
+            # Skip if the actor was killed between starting and executing this action
+            if actor.hp <= 0:
+                return
+
+            # Do it
             post_msg = action.execute()
 
             # See if anyone died
-            if action.target_character.hp <= 0:
+            if action.target_character and action.target_character.hp <= 0:
                 self.characters.pop(action.target_character.name, None)
 
             # TODO: could this hold the lock for too long?
@@ -82,7 +88,8 @@ class Room(object):
 
             # If the action target is an NPC, their aggro will have been inc'd in action.execute().
             # This gives the NPC the ability to react
-            if action.target_character.hp > 0 and isinstance(action.target_character, NPC):
+            # TODO: Not sure this is the best place for an NPC reaction.  It assumes the player is attacking
+            if action.target_character and action.target_character.hp > 0 and isinstance(action.target_character, NPC):
                 action.target_character.act()
 
 

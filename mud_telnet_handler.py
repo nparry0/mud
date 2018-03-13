@@ -1,6 +1,6 @@
 import gevent, gevent.server
 from telnetsrv.green import TelnetHandler, command
-from character import Password, Player, NPC, player_exists, Action
+from character import *
 
 
 # The TelnetHandler instance is re-created for each connection.
@@ -261,6 +261,14 @@ New players, enter NEW as your name.
         self.game_server.add_player(self.player)
         self.write_room_desc()
 
+    @command(['debug'])
+    def command_debug(self, params):
+        '''
+        TODO: Remove this command!
+        '''
+        # TODO: Remove this command!
+        self.player.mod_hp(100)
+        self.player.save()
 
     @command(['say'])
     def command_say(self, params):
@@ -271,8 +279,7 @@ New players, enter NEW as your name.
             self.writeerror("say what?")
             return
         msg = " ".join(params)
-        self.game_server.add_action(Action(self.player, None, None, Action.ACTION_TYPE_SAY, {"msg": msg}))
-
+        self.game_server.add_action(SayAction(actor=self.player, kwargs={"msg": msg}))
 
     @command(['attack'])
     def command_attack(self, params):
@@ -283,7 +290,7 @@ New players, enter NEW as your name.
             self.writeerror("attack what?")
             return
         target = " ".join(params)
-        self.game_server.add_action(Action(self.player, target, None, Action.ACTION_TYPE_ATTACK, {}))
+        self.game_server.add_action(AttackAction(actor=self.player, target=target))
 
 #    def session_end(self):
 #        self.game_server.(self.username);
