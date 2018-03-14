@@ -36,6 +36,8 @@ class Character(object):
         self.name = name
         self.hp = hp
         self.mp = mp
+        self.stats = StatTable(stats={Stat.STRENGTH: 11, Stat.SPEED: 8, Stat.INTELLIGENCE: 5, Stat.MELEE: 4})
+
         self.location = location
 
     def mod_hp(self, hp):
@@ -147,6 +149,8 @@ class AttackAction(Action):
 
 
 class Stat(object):
+
+    # TODO: Are these class variables??
 
     # Base stats
     STRENGTH = 0
@@ -267,6 +271,9 @@ class StatTable(object):
                 self._stats[stat] = Stat(0)
 
     def get_combined_modified(self, stat):
+        modified = self._stats[stat].modified
+        if modified <= 0:
+            return 0  # Base mods should not buff stats that are 0 to begin with
         if stat in StatTable.base_mod:
             return self._stats[stat].modified + self._stats[StatTable.base_mod[stat]].modified
         else:
@@ -284,3 +291,12 @@ class StatTable(object):
             if should_add:
                 ret.append(stat)
         return ret
+
+    def to_string(self):
+        display_stats = []
+        for s in self._stats:
+            combined_modified = self.get_combined_modified(s)
+            if combined_modified > 0:
+                display_stats.append('{}:\t{} ({})'.format(Stat.names[s], combined_modified, self._stats[s].base))
+        return '\n'.join(display_stats)
+

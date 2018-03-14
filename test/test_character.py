@@ -85,6 +85,24 @@ class TestStatTable:
                 (Stat.MELEE, -.7, True),
             ],
             [(Stat.INTELLIGENCE, 30), (Stat.STRENGTH, 8), (Stat.MELEE, 17)]
+        ),
+        # If the stat is 0 to being with, base mods should not make it >0
+        (
+
+            {Stat.STRENGTH: 10, Stat.MELEE: 0},
+            [
+                (Stat.STRENGTH, 5, False),
+            ],
+            [(Stat.STRENGTH, 15), (Stat.MELEE, 0)]
+        ),
+        # If the stat is buffed from 0 to >0, all bufs and base mods should apply
+        (
+            {Stat.STRENGTH: 10, Stat.MELEE: 0},
+            [
+                (Stat.STRENGTH, 5, False),
+                (Stat.MELEE, 5, False),
+            ],
+            [(Stat.STRENGTH, 15), (Stat.MELEE, 20)]
         )
     ])
     def test_get_combined_modified(self, starting, mods, expects):

@@ -292,5 +292,28 @@ New players, enter NEW as your name.
         target = " ".join(params)
         self.game_server.add_action(AttackAction(actor=self.player, target=target))
 
+    @command(['status', 'stats'])
+    def command_status(self, params):
+        '''
+        Print stats about yourself
+        '''
+        self.player.hp
+
+
+
+        #character_list = []
+        #    character_list.append(name)
+        #character_list = "\n".join(character_list)
+        self.writeresponse("""
+--- {name} ---
+HP: {hp}\tMP: {mp}
+{stats}
+""".format(name=self.player.name,
+           hp=self.player.hp,
+           mp=self.player.mp,
+           stats=self.player.stats.to_string())
+        )
+
+
 #    def session_end(self):
 #        self.game_server.(self.username);
