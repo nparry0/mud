@@ -297,23 +297,42 @@ New players, enter NEW as your name.
         '''
         Print stats about yourself
         '''
-        self.player.hp
 
+        wear_strs = []
+        for wear_idx in range(0, Equipment.MAX_WEAR):
+            equip_str = "(none)"
+            if wear_idx in self.player.wear:
+                equip_str = self.player.wear[wear_idx]
+            wear_strs.append('{}: {}'.format(Equipment.wear_names[wear_idx], equip_str))
 
-
-        #character_list = []
-        #    character_list.append(name)
-        #character_list = "\n".join(character_list)
         self.writeresponse("""
 --- {name} ---
-HP: {hp}\tMP: {mp}
+- Vitals -
+HP: {hp}/{max_hp}\tMP: {mp}/{max_mp}
+
+- Stats -
 {stats}
+
+- Equipment -
+{wear}
 """.format(name=self.player.name,
            hp=self.player.hp,
+           max_hp=self.player.stats.get_combined_modified(Stat.STRENGTH),
            mp=self.player.mp,
-           stats=self.player.stats.to_string())
-        )
+           max_mp=self.player.stats.get_combined_modified(Stat.INTELLIGENCE),
+           stats=self.player.stats.to_string(),
+           wear='\n'.join(wear_strs)))
 
+    @command(['inventory', 'inv'])
+    def command_inventory(self, params):
+        '''
+        Print inventory
+        '''
+
+        self.writeresponse("""
+--- Inventory ---
+{}
+""".format('\n'.join([inv.to_string() for inv in self.player.inventory])))
 
 #    def session_end(self):
 #        self.game_server.(self.username);

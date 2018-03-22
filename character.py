@@ -31,14 +31,62 @@ class Password(object):
         return self.hash == self.do_hash(password, self.salt)
 
 
+class Item(object):
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+
+
+class Equipment(Item):
+
+    # Wear slots
+    HEAD = 0
+    TORSO = 1
+    LEFT_HAND = 2
+    RIGHT_HAND = 3
+    LEGS = 4
+    BACK = 5
+    MAX_WEAR = 6
+
+    # Name of wear slots
+    wear_names = {
+        HEAD: "Head",
+        TORSO: "Torso",
+        LEFT_HAND: "Left Hand",
+        RIGHT_HAND: "Right Hand",
+        LEGS: "Legs",
+        BACK: "Back"
+    }
+
+    def __init__(self, name, description, wear=[], mods=[]):
+        Item.__init__(self, name, description)
+        self.wear = wear
+        self.mods = mods
+
+    def to_string(self):
+        mod_strs = []
+        for mod in self.mods:
+            if mod.value < 0:
+                if mod.is_percent:
+                    mod_strs.append('{} {}%'.format(Stat.names[mod.stat], int(mod.value*100)))
+                else:
+                    mod_strs.append('{} {}'.format(Stat.names[mod.stat], mod.value))
+            else:
+                if mod.is_percent:
+                    mod_strs.append('{} +{}%'.format(Stat.names[mod.stat], int(mod.value*100)))
+                else:
+                    mod_strs.append('{} +{}'.format(Stat.names[mod.stat], mod.value))
+        return '{} ({})'.format(self.name, ', '.join(mod_strs))
+
+
 class Character(object):
     def __init__(self, name, hp, mp, location):
         self.name = name
         self.hp = hp
         self.mp = mp
         self.stats = StatTable(stats={Stat.STRENGTH: 11, Stat.SPEED: 8, Stat.INTELLIGENCE: 5, Stat.MELEE: 4})
-
         self.location = location
+        self.wear = []
 
     def mod_hp(self, hp):
         self.hp += hp
@@ -69,9 +117,36 @@ class NPC(Character):
 
 class Player(Character):
     def __init__(self, name, player_dir, net_handler):
+        # TODO: This is all test stuff
         Character.__init__(self, name, 10, 10, (0,0,0))
         self.player_dir = player_dir
         self.net_handler = net_handler
+        self.inventory = [
+            Equipment(
+                'Iron Longsword',
+                'Sturdy sword made of iron.  Might be useful in a fight',
+                wear=[Equipment.RIGHT_HAND, Equipment.LEFT_HAND],
+                mods=[StatMod(Stat.MELEE, 2, False)]
+            ),
+            Equipment(
+                'Staff of Healing',
+                'Smooth maple staff that emits a dim yellow aura',
+                wear=[Equipment.RIGHT_HAND, Equipment.LEFT_HAND],
+                mods=[StatMod(Stat.INTELLIGENCE, 2, False), StatMod(Stat.CAST_HEAL, .25, True)]
+            ),
+            Equipment(
+                'Berserker Helmet',
+                'Helmet that enrages the wearer',
+                wear=[Equipment.HEAD],
+                mods=[StatMod(Stat.ARMOR, 3, False), StatMod(Stat.MELEE, 5, False), StatMod(Stat.INTELLIGENCE, -5, False)]
+            ),
+            Equipment(
+                'Heavy Chainmail',
+                'Thick coat of chainmail.  Offers excellent protection from physical damage.',
+                wear=[Equipment.TORSO],
+                mods=[StatMod(Stat.ARMOR, 7, False), StatMod(Stat.SPEED, -.5, True)]
+            )
+        ]
 
     def serialize(self):
         return self.name, self.hp, self.mp, self.location
@@ -159,13 +234,16 @@ class Stat(object):
 
     # Secondary stats
     MELEE = 10
-
+    ARMOR = 11
     RANGED = 20
+    EVASION = 21
 
-    CAST_FLAME = 30
-    CAST_HEAL = 31
-    CAST_CHILL = 32
-    CAST_FLAMING_SWORD = 33
+
+    WILLPOWER = 30
+    CAST_FLAME = 31
+    CAST_HEAL = 32
+    CAST_CHILL = 33
+    CAST_FLAMING_SWORD = 34
 
     # Name of the stat
     names = {
@@ -173,7 +251,10 @@ class Stat(object):
         SPEED: "Speed",
         INTELLIGENCE: "Intelligence",
         MELEE: "Melee Attack",
+        ARMOR: "Armor",
         RANGED: "Ranged Attack",
+        EVASION: "Evasion",
+        WILLPOWER: "Willpower",
         CAST_FLAME: "Cast Flame",
         CAST_HEAL: "Cast Heal",
         CAST_CHILL: "Cast Chill",
@@ -187,7 +268,10 @@ class Stat(object):
         SPEED: "Speed and dexterity.  Used to determine effectiveness of ranged attacks and evasion.",
         INTELLIGENCE: "Intellect and willpower.  Used to determine effectiveness of magical attacks and magical defense.",
         MELEE: "Strike an opponent with a weapon at close range.  Usage: equip a melee weapon and type 'attack <target>'",
+        ARMOR: "Physical defense due to armor, physical constitution, or both.  Damage from melee and ranged attacks is reduced",
         RANGED: "Fire a ranged weapon at an opponent.  Usage: equip a ranged weapon and type 'attack <target>'",
+        EVASION: "Ability to dodge melee and ranged attacks",
+        WILLPOWER: "Damaged is reduced from magic attacks",
         CAST_FLAME: "Launch a fireball about as big as a fist towards an opponent.  Usage: 'cast flame <target>'",
         CAST_HEAL: "TBD",
         CAST_CHILL: "TBD",
@@ -234,7 +318,10 @@ class StatTable(object):
     # Base modifiers (which base stats enhance a secondary stat)
     base_mod = {
         Stat.MELEE:                Stat.STRENGTH,
+        Stat.ARMOR:                Stat.STRENGTH,
         Stat.RANGED:               Stat.SPEED,
+        Stat.EVASION:              Stat.SPEED,
+        Stat.WILLPOWER:            Stat.INTELLIGENCE,
         Stat.CAST_FLAME:           Stat.INTELLIGENCE,
         Stat.CAST_HEAL:            Stat.INTELLIGENCE,
         Stat.CAST_CHILL:           Stat.INTELLIGENCE,
@@ -247,7 +334,10 @@ class StatTable(object):
         Stat.SPEED: [],
         Stat.INTELLIGENCE: [],
         Stat.MELEE: [],
+        Stat.ARMOR: [],
         Stat.RANGED: [],
+        Stat.EVASION: [],
+        Stat.WILLPOWER: [],
         Stat.CAST_FLAME: [],
         Stat.CAST_HEAL: [
             {'stat': Stat.CAST_FLAME, 'level': 5}
@@ -299,4 +389,12 @@ class StatTable(object):
             if combined_modified > 0:
                 display_stats.append('{}:\t{} ({})'.format(Stat.names[s], combined_modified, self._stats[s].base))
         return '\n'.join(display_stats)
+
+
+class StatMod(object):
+    def __init__(self, stat, value, is_percent, time=0):
+        self.stat = stat
+        self.value = value
+        self.is_percent = is_percent
+        self.time = time
 
