@@ -1,10 +1,18 @@
 import threading
 import cPickle
 import logging
-from character import NPC, Player
+from character import NPC, Player, AwarenessAction
 import re
 
+# TODO: put this somewhere better
+def green(text):
+    return "\x1b[0;32m%s\x1b[0m" % text
 
+def red(text):
+    return "\x1b[0;31m%s\x1b[0m" % text
+
+def yellow(text):
+    return "\x1b[0;33m%s\x1b[0m" % text
 class Room(object):
 
     SPAWN_POINT_TYPE_NPC = 0
@@ -20,7 +28,16 @@ class Room(object):
 
     def add_character(self, character):
         with self.lock:
+            # Add the character to the room
             self.characters[character.name] = character
+
+            # If it's a PC, NPCs should react to them
+            # TODO: we need the action to be added in timer context, not in command
+            # context, so create an action to make all NPCs look around and engage
+            if isinstance(character, Player):
+                for _, room_character in self.characters.iteritems():
+                    if isinstance(room_character, NPC):
+                        self.add_action(AwarenessAction(actor=room_character, target_character=character))
 
     def remove_character(self, character):
         with self.lock:
@@ -39,10 +56,13 @@ class Room(object):
     def broadcast_to_players(self, actor, msg):
         for name, character in self.characters.iteritems():
             if isinstance(character, Player):
+                # If we are in the context of a PC performing an action, then we must
+                # use writeresponse. Otherwise, use writemessage.
                 if actor is None or name != actor.name:
                     character.net_handler.writemessage(msg)
                 else:
-                    character.net_handler.writeresponse(msg)
+                    # Things that the player did should be in green so they stand out
+                    character.net_handler.writeresponse(green(msg))
 
     def add_action(self, action):
         # If there's a target, make sure that target is there first
@@ -70,6 +90,8 @@ class Room(object):
         with self.lock:
             # Skip if the target has left the room
             if action.target_character and action.target_character.name not in self.characters:
+                if hasattr(action, 'target_gone'):
+                    action.target_gone(action.target_character)
                 return
             # Skip if the actor was killed between starting and executing this action
             if actor.hp <= 0:
@@ -85,12 +107,6 @@ class Room(object):
             # TODO: could this hold the lock for too long?
             if post_msg is not None:
                 self.broadcast_to_players(actor, post_msg)
-
-            # If the action target is an NPC, their aggro will have been inc'd in action.execute().
-            # This gives the NPC the ability to react
-            # TODO: Not sure this is the best place for an NPC reaction.  It assumes the player is attacking
-            if action.target_character and action.target_character.hp > 0 and isinstance(action.target_character, NPC):
-                action.target_character.act()
 
 
 class Map(object):

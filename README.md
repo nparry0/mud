@@ -44,7 +44,7 @@ TBD
 - [X] PCs can move from room to room
 - [X] Spawn points can be generated with map builder and create NPCs on map load
 - [X] Combat interaction with NPCs (attacking them, being attacked in return)
-- [ ] More in depth combat (engagement, hostile enemy strike first)
+- [X] More in depth combat (engagement, hostile enemy strike first)
 - [X] Stat system and decide how the stats affect the mechanics of combat
 - [ ] Inventory, equipment, wear slots.  Equipping mods player stats.
 - [ ] Spawn points generate equipment.  PCs can obtain equipment, and wear it, modifying their stats.
@@ -52,3 +52,4 @@ TBD
 - [ ] Complete stat system, implementing every attack and spell, as well as side effects (e.g. flame spell burns target)
 - [ ] Questing system
 - [ ] Settings system to allow users to change personal settings (e.g. screen width, terminal colors on/off, etc)
+- [ ] Convert to python 3

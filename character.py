@@ -114,6 +114,24 @@ class NPC(Character):
         # 2) If not engaged, find someone to fight if hostile
         #elif self.AGGRO_HOSTILE:
 
+    def engage(self, character):
+        """
+        Engage a character as they enter the room. This could be a shop owner saying hi to a shopper, or a hostile
+        monster attacking a PC
+        """
+        if self.aggro == NPC.AGGRO_HOSTILE:
+            self.engaged = character
+            self.act()
+            return '{} prepares to fight {}'.format(self.name, character.name)
+
+        if self.aggro == NPC.AGGRO_FRIENDLY:
+            return '{} waves to {}'.format(self.name, character.name)
+
+        return None
+
+    def disengage(self):
+        self.engaged = None
+
 
 class Player(Character):
     def __init__(self, name, player_dir, net_handler):
@@ -204,7 +222,9 @@ class AttackAction(Action):
     def __init__(self, actor, target=None, target_character=None, kwargs={}):
         super(AttackAction, self).__init__(actor, target, target_character, kwargs)
         self.time = 1.0  # TODO: Make the time actually dependent on the actor (e.g. actor.get_attack_speed())
-        self.pre_msg_str = '{} makes ready their weapon...'
+        # NPCs will hit over and over.  Don't actually say this every single time
+        if isinstance(actor, Player):
+            self.pre_msg_str = '{} makes ready their weapon...'
 
     def execute(self):
         damage = 1
@@ -213,14 +233,37 @@ class AttackAction(Action):
         if isinstance(self.target_character, Player):
             self.target_character.save()
 
+        # If an NPC is attacked, set aggro to hostile and engage
+        # If an NPC did the attacking, see if they need to attack again
         if isinstance(self.target_character, NPC) and self.target_character.hp > 0:
             self.target_character.aggro = NPC.AGGRO_HOSTILE
-            self.target_character.engaged = self.actor
+            if self.target_character.engaged is None:
+                self.target_character.engage(self.actor)
+        elif isinstance(self.actor, NPC) and self.target_character.hp > 0:
+            self.actor.act()
 
         msg = '{} strikes {} for {} damage'.format(self.actor.name, self.target_character.name, damage)
         if self.target_character.hp <= 0:
             msg += '...and {} is slain.'.format(self.target_character.name)
         return msg
+
+    def target_gone(self, target):
+        if isinstance(self.actor, NPC) and self.actor.engaged == target:
+            self.actor.disengage()
+
+
+class AwarenessAction(Action):
+    """
+    NPCs use this action to detect new PCs in the room
+    """
+    def __init__(self, actor, target=None, target_character=None, kwargs={}):
+        super(AwarenessAction, self).__init__(actor, target, target_character, kwargs)
+        self.time = 1
+
+    def execute(self):
+        # TODO: possibly some check to see if the NPC can detect the PC
+        if self.actor.engaged is None:
+            return self.actor.engage(self.target_character)
 
 
 class Stat(object):

@@ -9,7 +9,7 @@ parser.add_argument("--map", type=str, default="mud.map", help="Map file")
 
 args = parser.parse_args()
 
-map = Map(args.map)
+map = Map(args.map, None)
 row = 0
 col = 0
 level = 0
